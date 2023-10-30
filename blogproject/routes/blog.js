@@ -9,3 +9,5 @@ router.get("/", function (req, res) {
 router.get("/posts", function (req, res) {
   res.render("posts-list");
 });
+
+module.exports = router;
