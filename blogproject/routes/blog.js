@@ -38,4 +38,30 @@ router.post("/posts", async function (req, res) {
   res.redirect("/posts");
 });
 
+router.get("/posts/:id", async function (req, res) {
+  const query = `
+    select posts.*, authors.name as author_name, authors.email as authors_email from posts 
+    inner join authors on posts.author_id = authors.id
+    where posts.id = ?
+  `;
+  const [posts] = await db.query(query, [req.params.id]);
+
+  if (!posts || posts.length === 0) {
+    return res.status(404).render("404");
+  }
+
+  const postData = {
+    ...posts[0],
+    date: posts[0].date.toISOString(),
+    humanReadabledate: posts[0].date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+  };
+
+  res.render("post-detail", { post: postData });
+});
+
 module.exports = router;
