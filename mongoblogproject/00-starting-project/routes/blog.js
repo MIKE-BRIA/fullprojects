@@ -11,19 +11,26 @@ router.get("/", function (req, res) {
   res.redirect("/posts");
 });
 
+// route for getting data from the database to the home page
+
 router.get("/posts", async function (req, res) {
   const posts = await db
     .getDb()
     .collection("posts")
-    .find({}, { title: 1, summary: 1, "author.name": 1 }).toArray;
+    .find({}, { title: 1, summary: 1, "author.name": 1 })
+    .toArray();
 
   res.render("posts-list", { posts: posts });
 });
+
+// route to getting the authors names from the database
 
 router.get("/new-post", async function (req, res) {
   const authors = await db.getDb().collection("authors").find().toArray();
   res.render("create-post", { authors: authors });
 });
+
+// route for submitting data to the database
 
 router.post("/posts", async function (req, res) {
   const authorId = new ObjectId(req.body.author);
@@ -49,4 +56,15 @@ router.post("/posts", async function (req, res) {
 
   res.redirect("/posts");
 });
+
+// route to view the whole post fetching everything from the posts table by id
+
+router.get("/posts/:id", async function (req, res) {
+  const postId = req.params.id;
+  const post = await db
+    .getDb()
+    .collection("posts")
+    .findOne({ _id: new ObjectId(postId) }, { summary: 0 });
+});
+
 module.exports = router;
