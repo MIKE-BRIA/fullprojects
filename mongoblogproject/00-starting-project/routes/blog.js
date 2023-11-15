@@ -59,12 +59,22 @@ router.post("/posts", async function (req, res) {
 
 // route to view the whole post fetching everything from the posts table by id
 
-router.get("/posts/:id", async function (req, res) {
+router.get("/posts/:id", async function (req, res, next) {
+  //getting data from the database
   const postId = req.params.id;
+
+  //handling error that may occur by entering wrong id
+  try {
+    postId = new ObjectId(postId);
+  } catch (error) {
+    return res.status(404).render("404");
+    //return next (error)  -------submitting the error to the middleware
+  }
+
   const post = await db
     .getDb()
     .collection("posts")
-    .findOne({ _id: new ObjectId(postId) }, { summary: 0 });
+    .findOne({ _id: postId }, { summary: 0 });
 
   if (!post) {
     return res.status(404).render("404");
@@ -82,6 +92,56 @@ router.get("/posts/:id", async function (req, res) {
   post.date = post.date.toISOString();
 
   res.render("post-detail", { post: post });
+});
+
+//route for editing posts
+
+router.get("/posts/:id/edit", async function (req, res) {
+  //getting data from database
+  const postId = req.params.id;
+  const post = await db
+    .getDb()
+    .collection("posts")
+    .findOne({ _id: new ObjectId(postId) }, { title: 1, summary: 1, body: 1 });
+
+  if (!post) {
+    return res.status(404).render("404");
+  }
+
+  res.render("update-post", { post: post });
+});
+
+//post route to submmit the edited data to the database then get back to home page
+
+router.post("/posts/:id/edit", async function (req, res) {
+  const postId = new ObjectId(req.params.id); //getting the id of the updated post
+  const results = await db
+    .getDb()
+    .collection("posts")
+    .updateOne(
+      { _id: postId },
+      {
+        $set: {
+          title: req.body.title,
+          summary: req.body.summary,
+          body: req.body.content,
+        },
+      }
+    );
+
+  res.redirect("/posts");
+});
+
+//deleting  a post
+
+router.post("/posts/:id/delete", async function (req, res) {
+  const postId = new ObjectId(req.params.id);
+  const results = await db
+    .getDb()
+    .collection("posts")
+    .deleteOne({ _id: postId });
+
+  res.redirect("/posts");
 });
 
 module.exports = router;
