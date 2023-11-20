@@ -51,7 +51,7 @@ router.post("/signup", async function (req, res) {
     .findOne({ email: enteredEmail });
 
   if (existingUser) {
-    ConnectionClosedEvent.log("User already exists");
+    console.log("User already exists");
     return res.redirect("/signup");
   }
 
@@ -95,18 +95,36 @@ router.post("/login", async function (req, res) {
     return res.redirect("/login");
   }
 
-  console.log("User is authenticated");
-  res.redirect("/admin");
+  //adding a new piece of data to the session if a user login succesfully
+  req.session.user = { id: existingUser._id, email: existingUser.email };
+  req.session.isAuthenticated = true;
+
+  //writing the session to the database
+  req.session.save(function () {
+    res.redirect("/admin"); //save the session then redirect user to admin page
+  });
 });
 
 //route that render the admin page
 
 router.get("/admin", function (req, res) {
+  //checking the sessions of incoming request
+  if (!req.session.isAuthenticated) {
+    return res.status(401).render("401");
+  }
+
   res.render("admin");
 });
 
 //route that seems to delete user data from the database
 
-router.post("/logout", function (req, res) {});
+router.post("/logout", function (req, res) {
+  //delete authentication data from the session
+  //Or delete entire session
+  req.session.user = null;
+  req.session.isAuthenticated = false;
+
+  res.redirect("/");
+});
 
 module.exports = router;
