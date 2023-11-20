@@ -44,7 +44,18 @@ router.get("/profile", function (req, res) {
 //route to the login page
 
 router.get("/login", function (req, res) {
-  res.render("login");
+  let sessionInputData = req.session.inputData;
+
+  if (!sessionInputData) {
+    sessionInputData = {
+      hasError: false,
+      email: "",
+
+      password: "",
+    };
+  }
+
+  res.render("login", { inputData: sessionInputData });
 });
 
 //route that collect sign-up data to the database
@@ -88,8 +99,18 @@ router.post("/signup", async function (req, res) {
     .findOne({ email: enteredEmail });
 
   if (existingUser) {
-    console.log("User already exists");
-    return res.redirect("/signup");
+    req.session.inputData = {
+      hasError: true,
+      message: "User exist already",
+      email: enteredEmail,
+      confirmEmail: enteredConfirmEmail,
+      password: enteredPassword,
+    };
+
+    req.session.save(function () {
+      res.redirect("/signup");
+    });
+    return;
   }
 
   //hashing passwords
@@ -118,8 +139,17 @@ router.post("/login", async function (req, res) {
     .findOne({ email: enteredEmail });
 
   if (!existingUser) {
-    console.log("could not login");
-    return res.redirect("/login");
+    req.session.inputData = {
+      hasError: true,
+      message: "Could not login check your credentials",
+      email: enteredEmail,
+      password: enteredPassword,
+    };
+
+    req.session.save(function () {
+      res.redirect("/login");
+    });
+    return;
   }
   //checking if the password entered in equal to the hashed on in the database
   const passwordsAreEqual = await bcrypt.compare(
@@ -128,8 +158,17 @@ router.post("/login", async function (req, res) {
   );
 
   if (!passwordsAreEqual) {
-    console.log("could not login-seems like you entered the wrong password");
-    return res.redirect("/login");
+    req.session.inputData = {
+      hasError: true,
+      message: "Could not login check your credentials",
+      email: enteredEmail,
+      password: enteredPassword,
+    };
+
+    req.session.save(function () {
+      res.redirect("/login");
+    });
+    return;
   }
 
   //adding a new piece of data to the session if a user login succesfully
