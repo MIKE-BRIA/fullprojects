@@ -14,7 +14,31 @@ router.get("/", function (req, res) {
 //route to the sign-up page
 
 router.get("/signup", function (req, res) {
-  res.render("signup");
+  let sessionInputData = req.session.inputData;
+
+  if (!sessionInputData) {
+    sessionInputData = {
+      hasError: false,
+      email: "",
+      confirmEmail: "",
+      password: "",
+    };
+  }
+
+  //deleteing the input value stored in the session
+  req.session.inputData = null;
+
+  res.render("signup", { inputData: sessionInputData });
+});
+
+//route to the profile page
+
+router.get("/profile", function (req, res) {
+  if (!req.session.isAuthenticated) {
+    return res.status(401).render("401");
+  }
+
+  res.render("profile");
 });
 
 //route to the login page
@@ -40,8 +64,21 @@ router.post("/signup", async function (req, res) {
     enteredEmail !== enteredConfirmEmail ||
     !enteredEmail.includes("@")
   ) {
-    console.log("Please enter the required data");
-    return res.redirect("/signup");
+    //storing data temporarily on the server using sessions
+    //this does not give access to the admin pages
+    req.session.inputData = {
+      hasError: true,
+      message: "invalid input-please check entered data",
+      email: enteredEmail,
+      confirmEmail: enteredConfirmEmail,
+      password: enteredPassword,
+    };
+
+    req.session.save(function () {
+      res.redirect("/signup");
+    });
+
+    return;
   }
 
   //checking if user exist already
@@ -96,21 +133,33 @@ router.post("/login", async function (req, res) {
   }
 
   //adding a new piece of data to the session if a user login succesfully
-  req.session.user = { id: existingUser._id, email: existingUser.email };
+  req.session.user = {
+    id: existingUser._id,
+    email: existingUser.email,
+  };
   req.session.isAuthenticated = true;
 
   //writing the session to the database
   req.session.save(function () {
-    res.redirect("/admin"); //save the session then redirect user to admin page
+    res.redirect("/profile"); //save the session then redirect user to admin page
   });
 });
 
 //route that render the admin page
 
-router.get("/admin", function (req, res) {
+router.get("/admin", async function (req, res) {
   //checking the sessions of incoming request
   if (!req.session.isAuthenticated) {
     return res.status(401).render("401");
+  }
+
+  const user = await db
+    .getDb()
+    .collection("users")
+    .findOne({ _id: req.session.user.id });
+
+  if (!user || !user.isAdmin) {
+    res.status(403).render("403");
   }
 
   res.render("admin");
