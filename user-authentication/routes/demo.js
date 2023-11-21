@@ -34,7 +34,7 @@ router.get("/signup", function (req, res) {
 //route to the profile page
 
 router.get("/profile", function (req, res) {
-  if (!req.session.isAuthenticated) {
+  if (!res.locals.isAuth) {
     return res.status(401).render("401");
   }
 
@@ -188,17 +188,12 @@ router.post("/login", async function (req, res) {
 
 router.get("/admin", async function (req, res) {
   //checking the sessions of incoming request
-  if (!req.session.isAuthenticated) {
+  if (!res.locals.isAuth) {
     return res.status(401).render("401");
   }
 
-  const user = await db
-    .getDb()
-    .collection("users")
-    .findOne({ _id: req.session.user.id });
-
-  if (!user || !user.isAdmin) {
-    res.status(403).render("403");
+  if (!res.locals.isAdmin) {
+    return res.status(403).render("403");
   }
 
   res.render("admin");
