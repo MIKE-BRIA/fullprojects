@@ -6,6 +6,7 @@ const mongodbStore = require("connect-mongodb-session");
 
 const db = require("./data/database");
 const demoRoutes = require("./routes/demo");
+const { isatty } = require("tty");
 
 const MongoDBStore = mongodbStore(session);
 
@@ -44,8 +45,14 @@ app.use(async function (req, res, next) {
     return next();
   }
 
-  const userDoc = await db.getDb.collection("users").findOne({ _id: user.id });
+  const userDoc = await db
+    .getDb()
+    .collection("users")
+    .findOne({ _id: user.id });
   const isAdmin = userDoc.isAdmin;
+
+  res.locals.isAuth = isAuth;
+  res.locals.isAdmin = isAdmin;
 
   next();
 });
