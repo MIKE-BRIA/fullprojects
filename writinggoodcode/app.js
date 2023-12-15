@@ -8,6 +8,7 @@ const sessionConfig = require("./config/session");
 const db = require("./data/database");
 const blogRoutes = require("./routes/blog");
 const authRoutes = require("./routes/auth");
+const authMiddleware = require("./middlewares/auth-middleware");
 
 const mongodbSessionStore = sessionConfig.createSessionStore(session);
 
@@ -22,18 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(session(sessionConfig.createSessionConfig(mongodbSessionStore)));
 app.use(csrf());
 
-app.use(async function (req, res, next) {
-  const user = req.session.user;
-  const isAuth = req.session.isAuthenticated;
-
-  if (!user || !isAuth) {
-    return next();
-  }
-
-  res.locals.isAuth = isAuth;
-
-  next();
-});
+app.use(authMiddleware);
 
 app.use(blogRoutes);
 app.use(authRoutes);
